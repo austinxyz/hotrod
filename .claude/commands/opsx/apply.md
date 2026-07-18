@@ -59,6 +59,19 @@ Convention for the task ordinal `N.X`: `N` is the group number; `X` is the posit
 
 - **`- [ ] N.0 CONTRACT — ...`** → read the `### Contract` block above group N in `tasks.md`. Write its content verbatim to `openspec/changes/<name>/contracts/group-N.md`. Confirm all three fields (Spec, Runtime, Code) are non-empty before proceeding. Mark the checkbox.
 
+- **`- [ ] N.V VALIDATE — ...`** → only present when the group's Contract binds a signadot plan. (1) Open `openspec/changes/<name>/signadot-plans/<behavior-id>.yaml`; bind every declared param with the now-known concrete values (URLs, payloads, tokens). (2) Run `signadot-validate` with the bound plan — it self-summons an ephemeral env, runs against the real cluster, tears down. If the CLI contract is not yet available, run the documented manual/scripted equivalent and capture the same fields. (3) Append the verdict to `eval-log.md`:
+
+  ```yaml
+  - group: N
+    validate:
+      plan: <behavior-id>
+      status: pass | fail
+      env_url: <ephemeral env URL if available>
+      assertions: [{name: "...", result: pass|fail}]
+  ```
+
+  (4) `status: fail` → treat exactly like an evaluator BLOCK: pause, report failed assertions, offer fix/skip/abort. Do not proceed to N.E with a failed verdict. Mark the checkbox only on pass or after the user chooses to proceed.
+
 - **`- [ ] N.E EVAL — ...`** → spawn evaluator subagent (haiku model). See **Evaluator Subagent** and **Retry Loop** sections below. Do NOT mark the checkbox until the evaluator returns PASS. On BLOCK, pause immediately and report to the user. On PASS, mark the checkbox and continue to next group.
 
 - **`- [ ] N.X FIX — ...`** → execute like a GREEN task: write the minimal code change described in the task. Run the relevant test to confirm the fix takes effect. Mark the checkbox. The next task will be another N.E EVAL — the retry loop re-fires automatically.
@@ -81,7 +94,7 @@ Evaluator prompt (pass this verbatim to the subagent):
 > 1. Invoke `superpowers:requesting-code-review` on the provided diff. If you find CRITICAL or HIGH severity issues, return immediately with `STATUS: BLOCK` and the findings. Do not score.
 > 2. Run the Runtime test command from the contract. Execute it as a shell command in the repo root and record pass/fail and output.
 > 3. Compare the diff against each SHALL statement in the contract's Spec section. Score 0–100.
-> 4. Score Runtime 0–100 (100 = all tests pass, 0 = test command fails to run).
+> 4. Score Runtime 0–100. FIRST check `eval-log.md` for a `validate:` entry for this group: if present, Runtime = 100 when its status is pass, 0 when fail — the real-cluster verdict overrides your own run. Only if no validate entry exists: run the Runtime test command from the contract (100 = all tests pass, 0 = test command fails to run).
 > 5. Score Code 0–100 based on requesting-code-review findings (no CRITICAL/HIGH assumed at this point).
 > 6. Compute total = (Spec × 0.4) + (Runtime × 0.4) + (Code × 0.2).
 > 7. Read the Threshold from the contract.
@@ -153,3 +166,4 @@ If paused (blocker, error, ambiguity, user interrupt):
 - DON'T skip RED tasks ("the test is obvious; I'll just GREEN"). The TDD skill catches this.
 - DON'T proceed past a group's checkpoint with unaddressed CRITICAL or HIGH review findings.
 - DO pause if a task reveals a design issue. Suggest updating proposal/design/specs as appropriate; don't paper over it.
+- DO run N.V VALIDATE before N.E EVAL in groups that bind a signadot plan — the evaluator reads the verdict as Runtime evidence; skipping N.V reverts Runtime to a guess, which defeats the binding.
