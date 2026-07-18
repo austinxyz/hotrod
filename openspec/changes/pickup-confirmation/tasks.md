@@ -33,12 +33,12 @@
 - [x] 2.9 GREEN — k8s: add containerPort 8082 + Service `driver` (port 8082) to k8s/base/driver.yaml; verify overlays build (`kubectl kustomize k8s/overlays/prod/devmesh | grep -A6 'name: driver'`)
 <!-- This group's Contract Runtime binds a signadot plan: -->
 - [x] 2.V VALIDATE — invoke signadot-plan skill: re-validate signadot-plans/pickup-confirmation-arrival.yaml against `signadot plan schema` (draft uses guessed schema — rewrite with real actionIDs), bind params (URLs, requestID capture now known), plan create + run on austin-staging-1; invoke signadot-validate skill for sandbox + routing-key workflow; append the structured verdict to eval-log.md; any failed assertion = Runtime floored → treat as BLOCK
-- [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
+- [x] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 
 ## 3. Verification + ship
 
 <!-- No Contract/EVAL block for this group — verification-and-ship groups run cross-cutting checks, not per-feature harness evaluation -->
 
-- [ ] 3.1 Run backend test suite — `go test ./...` from repo root, no regressions (project.test_commands from openspec/config.yaml)
-- [ ] 3.2 Baseline behavior check — existing dispatch flow unchanged when the new endpoint is unused (dispatch notifications still arrive; no errors in driver logs)
-- [ ] 3.3 Run superpowers:verification-before-completion (run project.test_commands from openspec/config.yaml; run project.custom_verification_checks — none configured)
+- [x] 3.1 Run backend test suite — `go test ./...` from repo root, no regressions (project.test_commands from openspec/config.yaml)
+- [x] 3.2 Baseline behavior check — existing dispatch flow unchanged when the new endpoint is unused (dispatch notifications still arrive; no errors in driver logs)
+- [x] 3.3 Run superpowers:verification-before-completion (run project.test_commands from openspec/config.yaml; run project.custom_verification_checks — none configured)

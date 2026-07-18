@@ -13,6 +13,14 @@
     - "code: Clean idiomatic Go with proper error handling, otel instrumentation, and test isolation via miniredis; minor gap is no explicit TTL preservation assertion (though implementation uses redis.KeepTTL correctly)"
 
 - group: 2
+  attempt: 1
+  scores: {spec: 100, runtime: 100, code: 95}
+  total: 99
+  status: PASS
+  findings:
+    - "spec: All 5 dispatch-tracking scenarios verified (record write, arrival transition, 404, idempotent, visibility); all contract SHALL statements implemented and tested"
+    - "runtime: Signadot plan `pickup-confirmation-arrival` validated all 5 assertions (dispatch-accepted, arrival-200, idempotent, exactly-one-notification, unknown-404) on austin-staging-1"
+    - "code: Comprehensive error handling, all edge cases tested (8/8 tests pass), proper Go idioms, clean architecture, security solid; minor info: panic on Redis instrumentation (acceptable per project pattern), separate tracer provider init (documented pattern)"
   validate:
     plan: pickup-confirmation-arrival
     plan_id: lkyjcsgkqkjxn
