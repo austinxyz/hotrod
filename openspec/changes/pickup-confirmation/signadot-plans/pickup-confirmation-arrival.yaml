@@ -1,3 +1,9 @@
+# DRAFT — schema is a placeholder from the integration spec, NOT the real
+# Signadot plan schema. At apply 2.V, invoke the signadot-plan skill:
+# discover the real schema via `signadot plan schema` + action catalog
+# (steps use action.actionID), rewrite this spec, bind params, then
+# `signadot plan create -f` + run. Behavior narrative and assertions below
+# are the source of truth to carry over.
 apiVersion: signadot.com/v1
 kind: TestPlan
 metadata:

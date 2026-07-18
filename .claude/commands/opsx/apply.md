@@ -59,7 +59,7 @@ Convention for the task ordinal `N.X`: `N` is the group number; `X` is the posit
 
 - **`- [ ] N.0 CONTRACT — ...`** → read the `### Contract` block above group N in `tasks.md`. Write its content verbatim to `openspec/changes/<name>/contracts/group-N.md`. Confirm all three fields (Spec, Runtime, Code) are non-empty before proceeding. Mark the checkbox.
 
-- **`- [ ] N.V VALIDATE — ...`** → only present when the group's Contract binds a signadot plan. (1) Open `openspec/changes/<name>/signadot-plans/<behavior-id>.yaml`; bind every declared param with the now-known concrete values (URLs, payloads, tokens). (2) Run `signadot-validate` with the bound plan — it self-summons an ephemeral env, runs against the real cluster, tears down. If the CLI contract is not yet available, run the documented manual/scripted equivalent and capture the same fields. (3) Append the verdict to `eval-log.md`:
+- **`- [ ] N.V VALIDATE — ...`** → only present when the group's Contract binds a signadot plan. (1) Invoke the `signadot-plan` skill: re-validate the draft at `openspec/changes/<name>/signadot-plans/<behavior-id>.yaml` against `signadot plan schema` (real actionIDs, refs), bind every declared param with the now-known concrete values (URLs, payloads, tokens), then `signadot plan create -f` + run it. (2) Invoke the `signadot-validate` skill for the surrounding sandbox workflow: sandbox for the changed service(s), routing-key injection (`baggage: sd-routing-key=<key>`), traffic through the cluster `.svc` URL — never localhost. If plan actions can't express an assertion, fall back to the skill's other validation types (integration test / e2e / browser) and capture the same fields. (3) Append the verdict to `eval-log.md`:
 
   ```yaml
   - group: N

@@ -32,7 +32,7 @@
 - [ ] 2.3 GREEN — <!-- implement the view -->
 - [ ] 2.4 VISUAL DIFF — bring up dev stack (use project.dev_stack_command from openspec/config.yaml); navigate to the route; eyeball rendered UI against the mock; fix any token/color/text drift
 <!-- Only if this group's Contract Runtime binds a signadot plan: -->
-- [ ] 2.V VALIDATE — bind params in openspec/changes/{{change}}/signadot-plans/<behavior-id>.yaml (URLs, payloads now known); run signadot-validate against the real cluster; append the structured verdict to eval-log.md; any failed assertion = Runtime floored → treat as BLOCK
+- [ ] 2.V VALIDATE — invoke signadot-plan skill: re-validate openspec/changes/{{change}}/signadot-plans/<behavior-id>.yaml against `signadot plan schema`, bind params (URLs, payloads now known), plan create + run; invoke signadot-validate skill for sandbox + routing-key workflow; append the structured verdict to eval-log.md; any failed assertion = Runtime floored → treat as BLOCK
 - [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ threshold → PASS; < threshold → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 
 ## 3. <!-- Verification + ship -->

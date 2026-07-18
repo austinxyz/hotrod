@@ -106,25 +106,7 @@ A group is **integration-critical** when its behavior spans services and is user
    mkdir -p openspec/changes/<topic>/signadot-plans
    ```
 
-2. Author `openspec/changes/<topic>/signadot-plans/<behavior-id>.yaml` — a **parameterized plan with unbound params** (no concrete URLs/payloads yet; they don't exist until apply):
-
-   ```yaml
-   apiVersion: signadot.com/v1
-   kind: TestPlan
-   metadata:
-     name: <behavior-id>                # kebab-case, one user-visible behavior
-     selectionHint: "<prose: what this plan validates — lets an agent match plan to diff>"
-   spec:
-     params:                            # declared, unbound — bound at apply N.V
-       baseUrl: null
-       # ...one entry per value unknown until implementation exists
-     steps:
-       - action: <request-http | playwright | k6>
-         params:
-           url: "{{ params.baseUrl }}<endpoint>"
-         assertions:
-           - <behavior-specific assertion>
-   ```
+2. Author `openspec/changes/<topic>/signadot-plans/<behavior-id>.yaml` — a **parameterized plan draft with unbound params** (no concrete URLs/payloads yet; they don't exist until apply). Invoke the `signadot-plan` skill to author it: follow its schema-discovery workflow (`signadot plan schema`, action catalog — steps reference `action.actionID`, not action names). If the cluster/CLI is unreachable at propose time, write the draft with the behavior narrative, declared-but-unbound `params`, intended steps, and per-step assertions; note at the top that the spec must be re-validated against `signadot plan schema` at apply N.V. Include a `selectionHint` describing what the plan validates (used at tagging — lets an agent match plan to diff).
 
 3. Rewrite that group's Contract **Runtime** field to the binding form:
 
