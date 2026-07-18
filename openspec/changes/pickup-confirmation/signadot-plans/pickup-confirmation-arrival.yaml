@@ -1,0 +1,51 @@
+apiVersion: signadot.com/v1
+kind: TestPlan
+metadata:
+  name: pickup-confirmation-arrival
+  selectionHint: >-
+    Validates the pickup-confirmation arrival chain end-to-end in a sandbox
+    running the forked driver against baseline redis/frontend: a ride dispatched
+    through the frontend produces a dispatch record; POST
+    /dispatches/{requestID}/arrived on the driver service transitions it and the
+    arrival notification surfaces in the frontend's /notifications polling.
+    Matches diffs touching services/driver (dispatchstore, consumer dispatch
+    write, arrived endpoint) or k8s driver Service wiring.
+spec:
+  params:                              # declared, unbound — bound at apply 2.V
+    frontendBaseUrl: null              # sandbox-routed frontend URL (ride request + notifications poll)
+    driverBaseUrl: null                # sandbox-routed driver URL (arrival POST)
+    sessionId: null                    # session used for the ride request / notification poll
+    requestId: null                    # captured from the dispatch triggered in step 1
+  steps:
+    - action: request-http             # 1. trigger a dispatch through the baseline frontend
+      params:
+        method: POST
+        url: "{{ params.frontendBaseUrl }}/dispatch"
+      assertions:
+        - dispatch accepted (2xx)
+        - a dispatch record dispatch:{{ params.requestId }} exists with status "dispatched"
+    - action: request-http             # 2. driver arrival — the behavior under test
+      params:
+        method: POST
+        url: "{{ params.driverBaseUrl }}/dispatches/{{ params.requestId }}/arrived"
+      assertions:
+        - response status 200
+    - action: request-http             # 3. idempotency — repeat arrival
+      params:
+        method: POST
+        url: "{{ params.driverBaseUrl }}/dispatches/{{ params.requestId }}/arrived"
+      assertions:
+        - response status 200
+    - action: request-http             # 4. user-visible outcome via existing polling
+      params:
+        method: GET
+        url: "{{ params.frontendBaseUrl }}/notifications?sessionID={{ params.sessionId }}"
+      assertions:
+        - notifications include exactly one entry with ID "req-{{ params.requestId }}-arrived"
+        - that entry's body matches "Driver .* arrived at pickup"
+    - action: request-http             # 5. negative — unknown dispatch id
+      params:
+        method: POST
+        url: "{{ params.driverBaseUrl }}/dispatches/does-not-exist/arrived"
+      assertions:
+        - response status 404
