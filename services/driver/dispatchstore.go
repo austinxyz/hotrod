@@ -21,8 +21,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
+	"github.com/signadot/hotrod/pkg/config"
 	"github.com/signadot/hotrod/pkg/log"
+	"github.com/signadot/hotrod/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -65,6 +68,23 @@ type dispatchStore struct {
 	tracer trace.Tracer
 	logger log.Factory
 	rdb    *redis.Client
+}
+
+// NewDispatchStoreFromConfig returns a DispatchStore backed by the Redis
+// instance from pkg/config, with redis tracing instrumented (same pattern as
+// pkg/notifications).
+func NewDispatchStoreFromConfig(tracerProvider trace.TracerProvider, logger log.Factory) DispatchStore {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.GetRedisAddr(),
+		Password: config.GetRedisPassword(),
+		DB:       0, // use default DB
+	})
+	redisTracerProvider := tracing.InitOTEL("redis", logger)
+	if err := redisotel.InstrumentTracing(rdb,
+		redisotel.WithTracerProvider(redisTracerProvider)); err != nil {
+		panic(err)
+	}
+	return NewDispatchStore(tracerProvider, logger, rdb)
 }
 
 // NewDispatchStore returns a Redis-backed DispatchStore.

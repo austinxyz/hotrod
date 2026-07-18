@@ -24,13 +24,14 @@ import (
 
 // Consumer represents a Sarama consumer group consumer
 type Consumer struct {
-	tracer       trace.Tracer
-	logger       log.Factory
-	routing      watched.BaselineWatched
-	driverStore  *driverStore
-	bestETA      *bestETA
-	notification notifications.Interface
-	ready        chan bool
+	tracer        trace.Tracer
+	logger        log.Factory
+	routing       watched.BaselineWatched
+	driverStore   *driverStore
+	bestETA       *bestETA
+	notification  notifications.Interface
+	dispatchStore DispatchStore
+	ready         chan bool
 }
 
 func newConsumer(ctx context.Context, tracerProvider trace.TracerProvider,
@@ -47,10 +48,28 @@ func newConsumer(ctx context.Context, tracerProvider trace.TracerProvider,
 		tracer:       tracer,
 		logger:       logger,
 		routing:      routing,
-		driverStore:  newDriverStore(tracer, logger),
-		bestETA:      newBestETA(tracerProvider, tracer, logger),
-		notification: notifications.NewNotificationHandler(tracerProvider, logger),
-		ready:        make(chan bool),
+		driverStore:   newDriverStore(tracer, logger),
+		bestETA:       newBestETA(tracerProvider, tracer, logger),
+		notification:  notifications.NewNotificationHandler(tracerProvider, logger),
+		dispatchStore: NewDispatchStoreFromConfig(tracerProvider, logger),
+		ready:         make(chan bool),
+	}
+}
+
+// storeDispatchRecord persists the dispatch outcome so the arrival endpoint
+// can act on it later; failures are logged, not fatal — the dispatch itself
+// already succeeded.
+func (consumer *Consumer) storeDispatchRecord(ctx context.Context,
+	reqContext *notifications.RequestContext, routingKey string, best *Response) {
+	err := consumer.dispatchStore.Store(ctx, reqContext.ID, &DispatchRecord{
+		SessionID:  reqContext.SessionID,
+		DriverID:   best.DriverID,
+		ETA:        best.ETA,
+		RoutingKey: routingKey,
+		Status:     StatusDispatched,
+	})
+	if err != nil {
+		consumer.logger.For(ctx).Error("failed to store dispatch record", zap.Error(err))
 	}
 }
 
@@ -158,6 +177,9 @@ func (consumer *Consumer) processDispatchRequest(msg *sarama.ConsumerMessage) {
 		span.SetStatus(codes.Error, err.Error())
 		return
 	}
+
+	// persist the dispatch record so the arrival endpoint can act on it
+	consumer.storeDispatchRecord(ctx, reqContext, baggageutils.GetRoutingKey(ctx), bestDriver)
 
 	// send a notification
 	consumer.notification.Store(ctx, &notifications.Notification{

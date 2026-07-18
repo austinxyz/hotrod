@@ -11,7 +11,7 @@
 - [x] 1.2 GREEN — implement services/driver/dispatchstore.go: DispatchRecord struct (JSON), interface {Store, Get, UpdateStatus}, Redis client via pkg/config, 5-min SetEx TTL, otel span per op (follow pkg/notifications/handler.go pattern)
 - [x] 1.3 RED — failing test: UpdateStatus transitions "dispatched"→"arrived" and persists; UpdateStatus on missing key returns not-found
 - [x] 1.4 GREEN — implement UpdateStatus (GET + mutate + SET preserving TTL); pass 1.3
-- [ ] 1.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-1.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
+- [x] 1.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-1.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 
 ## 2. Arrival flow (consumer write + HTTP endpoint + k8s Service)
 
@@ -21,16 +21,16 @@
 - **Code**: handler registered on existing :8082 mux in processor.go (no second server); NotificationContext rebuilt from record fields only (no baggage on HTTP POST); GET+SET race accepted — deterministic notification ID dedupes; k8s Service added in k8s/base/driver.yaml so all overlays inherit
 - **Threshold**: 80
 
-- [ ] 2.0 CONTRACT — write openspec/changes/pickup-confirmation/contracts/group-2.md with the ### Contract block above
-- [ ] 2.1 RED — failing test: arrived handler — POST unknown requestID → 404, no notification stored (mock/miniredis + recorded notification interface)
-- [ ] 2.2 GREEN — implement arrived handler skeleton in processor.go: route `POST /dispatches/{id}/arrived` on the :8082 mux, 404 path via dispatchstore.Get
-- [ ] 2.3 RED — failing test: successful transition — record in "dispatched" → 200, status becomes "arrived", notification "Driver <driverID> arrived at pickup" stored with ID `req-<requestID>-arrived` for the record's session/routingKey
-- [ ] 2.4 GREEN — implement transition path: UpdateStatus + notifications.Store with NotificationContext rebuilt from record; pass 2.3
-- [ ] 2.5 RED — failing test: idempotency — record already "arrived" → 200, Store called with same deterministic ID (handler-level; dedupe itself is existing notification behavior)
-- [ ] 2.6 GREEN — implement idempotent branch; pass 2.5
-- [ ] 2.7 RED — failing test: consumer writes dispatch record — after processDispatchRequest selects bestDriver, dispatchstore contains record for the request (refactor seam: inject dispatchstore into Consumer)
-- [ ] 2.8 GREEN — wire dispatchstore into Consumer; write record at end of processDispatchRequest (after bestETA succeeds, alongside the dispatched notification); pass 2.7
-- [ ] 2.9 GREEN — k8s: add containerPort 8082 + Service `driver` (port 8082) to k8s/base/driver.yaml; verify overlays build (`kubectl kustomize k8s/overlays/prod/devmesh | grep -A6 'name: driver'`)
+- [x] 2.0 CONTRACT — write openspec/changes/pickup-confirmation/contracts/group-2.md with the ### Contract block above
+- [x] 2.1 RED — failing test: arrived handler — POST unknown requestID → 404, no notification stored (mock/miniredis + recorded notification interface)
+- [x] 2.2 GREEN — implement arrived handler skeleton in processor.go: route `POST /dispatches/{id}/arrived` on the :8082 mux, 404 path via dispatchstore.Get
+- [x] 2.3 RED — failing test: successful transition — record in "dispatched" → 200, status becomes "arrived", notification "Driver <driverID> arrived at pickup" stored with ID `req-<requestID>-arrived` for the record's session/routingKey
+- [x] 2.4 GREEN — implement transition path: UpdateStatus + notifications.Store with NotificationContext rebuilt from record; pass 2.3
+- [x] 2.5 RED — failing test: idempotency — record already "arrived" → 200, Store called with same deterministic ID (handler-level; dedupe itself is existing notification behavior)
+- [x] 2.6 GREEN — implement idempotent branch; pass 2.5
+- [x] 2.7 RED — failing test: consumer writes dispatch record — after processDispatchRequest selects bestDriver, dispatchstore contains record for the request (refactor seam: inject dispatchstore into Consumer)
+- [x] 2.8 GREEN — wire dispatchstore into Consumer; write record at end of processDispatchRequest (after bestETA succeeds, alongside the dispatched notification); pass 2.7
+- [x] 2.9 GREEN — k8s: add containerPort 8082 + Service `driver` (port 8082) to k8s/base/driver.yaml; verify overlays build (`kubectl kustomize k8s/overlays/prod/devmesh | grep -A6 'name: driver'`)
 <!-- This group's Contract Runtime binds a signadot plan: -->
 - [ ] 2.V VALIDATE — invoke signadot-plan skill: re-validate signadot-plans/pickup-confirmation-arrival.yaml against `signadot plan schema` (draft uses guessed schema — rewrite with real actionIDs), bind params (URLs, requestID capture now known), plan create + run on austin-staging-1; invoke signadot-validate skill for sandbox + routing-key workflow; append the structured verdict to eval-log.md; any failed assertion = Runtime floored → treat as BLOCK
 - [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)

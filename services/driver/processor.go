@@ -107,6 +107,8 @@ func (p *Processor) Run() error {
 		p.logger.For(ctx).Info("handling /healthz")
 		resp.Write([]byte("ok"))
 	}))
+	http.Handle("POST /dispatches/{requestID}/arrived",
+		NewArrivedHandler(tracerProvider, p.logger, consumer.dispatchStore, consumer.notification))
 	go http.ListenAndServe(":8082", http.DefaultServeMux)
 
 	sigterm := make(chan os.Signal, 1)
