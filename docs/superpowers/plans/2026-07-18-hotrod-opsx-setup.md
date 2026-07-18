@@ -46,14 +46,14 @@ cd /c/Users/lorra/projects/hotrod-opsx && git remote -v
 **Interfaces:**
 - Produces: installed command files edited by Tasks 4–6; local schema template edited by Task 3; `openspec/config.yaml` with `integrations.signadot.enabled: true` read by the propose.md changes (Task 4)
 
-- [ ] **Step 1: Create branch**
+- [x] **Step 1: Create branch**
 
 ```bash
 cd /c/Users/lorra/projects/hotrod-opsx
 git checkout -b opsx-setup
 ```
 
-- [ ] **Step 2: Run the installer from hotrod-opsx root**
+- [x] **Step 2: Run the installer from hotrod-opsx root**
 
 ```bash
 bash /c/Users/lorra/projects/opsx-superpowers/bin/opsx-install
@@ -61,14 +61,14 @@ bash /c/Users/lorra/projects/opsx-superpowers/bin/opsx-install
 
 Expected output: `✓ superpowers-driven schema installed ...` and `✓ opsx commands installed to .claude/commands/opsx`.
 
-- [ ] **Step 3: Copy the schema into the project (local override — this is the copy we edit)**
+- [x] **Step 3: Copy the schema into the project (local override — this is the copy we edit)**
 
 ```bash
 mkdir -p openspec/schemas
 cp -r /c/Users/lorra/projects/opsx-superpowers/schemas/superpowers-driven openspec/schemas/superpowers-driven
 ```
 
-- [ ] **Step 4: Verify install**
+- [x] **Step 4: Verify install**
 
 ```bash
 ls .claude/commands/opsx
@@ -78,7 +78,7 @@ openspec schemas 2>/dev/null | grep superpowers-driven || echo "openspec CLI mis
 
 Expected: 4 command files; 6 template files; schema listed. If openspec CLI missing, install it and re-check. If `openspec schemas` does not show the project-local copy, check `openspec schema which superpowers-driven` — the project must resolve to `openspec/schemas/superpowers-driven`; if the CLI has no project-local resolution in this version, edits in Task 3 must ALSO be mirrored to the `%LOCALAPPDATA%` copy (add that to Task 3 step 3 in that case).
 
-- [ ] **Step 5: Write openspec/config.yaml**
+- [x] **Step 5: Write openspec/config.yaml**
 
 Create `openspec/config.yaml`:
 
@@ -118,7 +118,7 @@ context: |
 rules: {}
 ```
 
-- [ ] **Step 6: Write CLAUDE.md**
+- [x] **Step 6: Write CLAUDE.md**
 
 Create `CLAUDE.md`:
 
@@ -156,7 +156,7 @@ Integration spec: https://github.com/austinxyz/opsx-superpowers/blob/signadot/do
 (populated by /opsx:archive)
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .claude/ openspec/ CLAUDE.md docs/
@@ -175,7 +175,7 @@ git commit -m "chore: install opsx-superpowers scaffolding (local copies for sig
 **Interfaces:**
 - Produces: template lines `N.V VALIDATE` and Runtime plan-binding comment consumed by propose.md (Task 4) and apply.md (Task 5)
 
-- [ ] **Step 1: Add plan-binding option to the group-2 Contract Runtime comment**
+- [x] **Step 1: Add plan-binding option to the group-2 Contract Runtime comment**
 
 Replace (exact old string):
 
@@ -191,7 +191,7 @@ with:
        validated by signadot plan `<behavior-id>` (plan yaml in signadot-plans/, authored at propose with unbound params) -->
 ```
 
-- [ ] **Step 2: Add the optional N.V VALIDATE line to group 2**
+- [x] **Step 2: Add the optional N.V VALIDATE line to group 2**
 
 Replace:
 
@@ -209,7 +209,7 @@ with:
 - [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ threshold → PASS; < threshold → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cd /c/Users/lorra/projects/hotrod-opsx
@@ -219,7 +219,7 @@ grep -n "validated by signadot plan" openspec/schemas/superpowers-driven/templat
 
 Expected: one hit each, inside group 2. **If Task 2 step 4 found the CLI ignores the project-local schema**, mirror the same two edits to `%LOCALAPPDATA%/openspec/schemas/superpowers-driven/templates/tasks.md` now.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add openspec/schemas/
@@ -237,7 +237,7 @@ git commit -m "feat(schema): add optional signadot plan binding + N.V VALIDATE t
 - Consumes: template markers from Task 3; `integrations.signadot.enabled` from `openspec/config.yaml` (Task 2)
 - Produces: propose-time artifacts `signadot-plans/<behavior-id>.yaml` (unbound params) that apply.md (Task 5) binds and runs
 
-- [ ] **Step 1: Add step 3b after step 3a (Contract blocks)**
+- [x] **Step 1: Add step 3b after step 3a (Contract blocks)**
 
 In `.claude/commands/opsx/propose.md`, insert immediately before the line `### 4. After proposal generation: branch on HAS_UI_SURFACE`:
 
@@ -285,7 +285,7 @@ A group is **integration-critical** when its behavior spans services and is user
 Groups that are NOT integration-critical keep the plain test-command Runtime and get no plan and no N.V task.
 ```
 
-- [ ] **Step 2: Add guardrail**
+- [x] **Step 2: Add guardrail**
 
 Append to the **Guardrails** list at the end of the file:
 
@@ -293,7 +293,7 @@ Append to the **Guardrails** list at the end of the file:
 - Signadot plans are propose-phase artifacts (what correct means) — author the yaml with unbound params here; NEVER fill in concrete URLs/payloads at propose. Binding happens at apply N.V.
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "3b. Signadot plans" .claude/commands/opsx/propose.md
@@ -302,7 +302,7 @@ grep -n "unbound params" .claude/commands/opsx/propose.md
 
 Expected: 3b heading present; ≥ 2 mentions of unbound params.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .claude/commands/opsx/propose.md
@@ -320,7 +320,7 @@ git commit -m "feat(propose): author parameterized signadot plans for integratio
 - Consumes: `signadot-plans/<behavior-id>.yaml` (unbound) from Task 4's flow; `N.V VALIDATE` task form from Task 3
 - Produces: validate verdict entries in `eval-log.md` consumed by the evaluator subagent
 
-- [ ] **Step 1: Add N.V dispatch to the task-prefix list**
+- [x] **Step 1: Add N.V dispatch to the task-prefix list**
 
 In `.claude/commands/opsx/apply.md`, in the "For each task, dispatch by prefix" list, insert a new bullet immediately before the `- **\`- [ ] N.E EVAL — ...\`**` bullet:
 
@@ -339,7 +339,7 @@ In `.claude/commands/opsx/apply.md`, in the "For each task, dispatch by prefix" 
   (4) `status: fail` → treat exactly like an evaluator BLOCK: pause, report failed assertions, offer fix/skip/abort. Do not proceed to N.E with a failed verdict. Mark the checkbox only on pass or after the user chooses to proceed.
 ```
 
-- [ ] **Step 2: Wire the verdict into the evaluator prompt**
+- [x] **Step 2: Wire the verdict into the evaluator prompt**
 
 In the **Evaluator Subagent** section, replace step 4 of the evaluator prompt:
 
@@ -353,7 +353,7 @@ with:
 > 4. Score Runtime 0–100. FIRST check `eval-log.md` for a `validate:` entry for this group: if present, Runtime = 100 when its status is pass, 0 when fail — the real-cluster verdict overrides your own run. Only if no validate entry exists: run the Runtime test command from the contract (100 = all tests pass, 0 = test command fails to run).
 ```
 
-- [ ] **Step 3: Add guardrail**
+- [x] **Step 3: Add guardrail**
 
 Append to the Guardrails list:
 
@@ -361,7 +361,7 @@ Append to the Guardrails list:
 - DO run N.V VALIDATE before N.E EVAL in groups that bind a signadot plan — the evaluator reads the verdict as Runtime evidence; skipping N.V reverts Runtime to a guess, which defeats the binding.
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 grep -n "N.V VALIDATE" .claude/commands/opsx/apply.md
@@ -370,7 +370,7 @@ grep -n "real-cluster verdict overrides" .claude/commands/opsx/apply.md
 
 Expected: dispatch bullet + guardrail hits; evaluator prompt hit.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .claude/commands/opsx/apply.md
@@ -387,7 +387,7 @@ git commit -m "feat(apply): N.V VALIDATE step binds signadot plan and feeds EVAL
 **Interfaces:**
 - Produces: durable plan library convention `openspec/specs/<capability>/plans/<behavior-id>.yaml`
 
-- [ ] **Step 1: Add plan registration**
+- [x] **Step 1: Add plan registration**
 
 In `.claude/commands/opsx/archive.md`, insert a new section between `### 6. Cleanup step 4 — conditional project README` and `### 7. Dev log check`:
 
@@ -404,7 +404,7 @@ git mv openspec/changes/archive/<date>-<name>/signadot-plans/<behavior-id>.yaml 
 The accumulating `selectionHint` catalog under `openspec/specs/*/plans/` is the versioned plan library — future changes touching the same behavior reuse these plans instead of authoring from scratch. If a plan's behavior failed final validation or was descoped, delete it instead of registering it; note why in the commit message.
 ```
 
-- [ ] **Step 2: Broaden the step-8 cleanup commit**
+- [x] **Step 2: Broaden the step-8 cleanup commit**
 
 Replace:
 
@@ -418,7 +418,7 @@ with:
 git add openspec/specs/ openspec/changes/archive/ CLAUDE.md README.md docs/log/
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "6b. Cleanup step 5" .claude/commands/opsx/archive.md
@@ -426,7 +426,7 @@ grep -n "6b. Cleanup step 5" .claude/commands/opsx/archive.md
 
 Expected: one hit.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .claude/commands/opsx/archive.md
@@ -445,7 +445,7 @@ git commit -m "feat(archive): register validated signadot plans into capability 
 - Consumes: approved design at `opsx-superpowers/docs/superpowers/specs/2026-07-18-hotrod-pickup-confirmation-design.md` (read-only source)
 - Produces: the two specs `/opsx:explore` will draw requirements from
 
-- [ ] **Step 1: Copy Feature 2 (approved) design in**
+- [x] **Step 1: Copy Feature 2 (approved) design in**
 
 ```bash
 mkdir -p /c/Users/lorra/projects/hotrod-opsx/docs/superpowers/specs
@@ -459,7 +459,7 @@ Then edit the copied file's `**Home:**` line to:
 **Home:** this repo (hotrod-opsx). Authored during brainstorm in opsx-superpowers on 2026-07-18.
 ```
 
-- [ ] **Step 2: Write Feature 1 DRAFT spec**
+- [x] **Step 2: Write Feature 1 DRAFT spec**
 
 Create `docs/superpowers/specs/2026-07-18-driver-status-design.md`:
 
@@ -488,7 +488,7 @@ User-visible: frontend shows driver availability — "Driver busy" / "Driver acc
 4. Signadot plan: which cross-service assertion proves the behavior end-to-end?
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/superpowers/specs/
@@ -502,7 +502,7 @@ git commit -m "docs: add pickup-confirmation (approved) and driver-status (draft
 **Files:**
 - Modify: `CLAUDE.md` (append kickoff section)
 
-- [ ] **Step 1: Append kickoff to CLAUDE.md**
+- [x] **Step 1: Append kickoff to CLAUDE.md**
 
 Append to `CLAUDE.md`:
 
@@ -520,7 +520,7 @@ Append to `CLAUDE.md`:
 5. After e2e validated: sync skill changes back to opsx-superpowers (see plan's Sync-back section)
 ```
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
 ```bash
 git add CLAUDE.md
