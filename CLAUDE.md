@@ -29,3 +29,15 @@ Integration spec: https://github.com/austinxyz/opsx-superpowers/blob/signadot/do
 ## Pitfalls
 
 (populated by /opsx:archive)
+
+## Kickoff (next steps)
+
+1. `/opsx:explore pickup-confirmation` — requirements distill from
+   docs/superpowers/specs/2026-07-18-pickup-confirmation-design.md (design already approved;
+   explore should be fast: draft requirements → review → REVIEWED)
+2. `/opsx:propose pickup-confirmation` — expect step 3b to author
+   signadot-plans/<behavior-id>.yaml with unbound params
+3. `/opsx:apply pickup-confirmation` — N.V VALIDATE binds params and runs against
+   austin-staging-1 (manual/scripted until the signadot-validate CLI contract is confirmed with Joe)
+4. `/opsx:archive pickup-confirmation` — registers the plan into openspec/specs/*/plans/
+5. After e2e validated: sync skill changes back to opsx-superpowers (see plan's Sync-back section)
