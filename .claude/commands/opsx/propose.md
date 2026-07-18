@@ -98,7 +98,23 @@ Create `openspec/changes/<topic>/eval-log.md` with this header (substituting the
 
 Skip this step entirely if `integrations.signadot.enabled` is absent or false in `openspec/config.yaml`.
 
-A group is **integration-critical** when its behavior spans services and is user-visible end-to-end (the kind that passes unit tests but breaks the system). For each such group:
+A group is **integration-critical** when its behavior spans services and is user-visible end-to-end (the kind that passes unit tests but breaks the system).
+
+**Decision checklist** — score each group against these signals:
+
+| Signal | Present → bind a plan | Absent → plain test command |
+|---|---|---|
+| Call chain crosses ≥2 services | e.g. frontend → driver → redis | single-service internal logic |
+| Async hop in the path | message queue, polling loop | synchronous calls only |
+| Shared runtime state | a store key written by one side, read by another | pure in-memory / pure computation |
+| Deployment-surface change | k8s Service, ports, routing | code-only change |
+| Failure mode = "units green, system broken" | dropped routing key, TTL expiry, unreachable port | failures caught directly by unit tests |
+
+Litmus question: *"With this group's unit tests all green, how could the user-visible behavior still break?"* A concrete answer (cross-service / async / shared-state / deployment reason) → bind a plan. No answer → don't.
+
+Counter-guardrail: plans run real sandboxes against the real cluster — slow and costly. Bind them at service seams only; a pure-logic group with a plan is waste. Verification/ship groups never bind one.
+
+For each integration-critical group:
 
 1. Pre-create the plans directory (parallel to `contracts/`):
 
