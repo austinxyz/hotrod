@@ -1,0 +1,33 @@
+schema: superpowers-driven
+
+project:
+  dev_stack_command: "kubectl -n hotrod port-forward svc/frontend 8080:8080"
+  test_commands:
+    - "go test ./..."
+  e2e_command: ""
+  design_system: "custom"        # hotrod ships its own embedded web UI; no external design system
+  custom_verification_checks: []
+
+integrations:
+  signadot:
+    enabled: true
+    cluster: "austin-staging-1"
+    # Bootstrap prerequisites (one-time, never per-topic):
+    #  - Signadot Operator installed (ns signadot), cluster connected in app.signadot.com
+    #  - kind cluster "hotrod" (kubectl context kind-hotrod), baseline app in ns hotrod
+
+context: |
+  HotROD — Signadot's fork of the Jaeger demo app. Go 1.x microservices:
+  frontend (HTTP :8080, embedded web UI, Kafka producer, notification polling),
+  driver (Kafka consumer, health :8082, calls location + route),
+  location (HTTP :8081, MySQL), route (gRPC :8083), redis (notifications), kafka, mysql.
+  Cross-service calls: services/frontend/dispatcher.go (location.Get, Kafka publish),
+  services/driver/consumer.go processDispatchRequest (driverStore, bestETA, notifications),
+  pkg/notifications/handler.go (Redis store/list, 30s SetEx TTL).
+  Tests: go test ./... from repo root.
+  Deploy: baseline runs on local kind cluster (context kind-hotrod) namespace hotrod,
+  manifests k8s/overlays/prod/devmesh; Signadot Operator installed, cluster austin-staging-1.
+  Sandbox pattern: fork the modified service (e.g. driver) in a Signadot sandbox against
+  baseline frontend/redis.
+
+rules: {}
