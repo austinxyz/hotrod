@@ -18,6 +18,8 @@
 ### Contract
 - **Spec**: <!-- SHALL statements covered by this group -->
 - **Runtime**: `<!-- test command -->` → expected: <!-- passing state -->
+  <!-- Integration-critical group (cross-service, user-visible behavior)? Use instead:
+       validated by signadot plan `<behavior-id>` (plan yaml in signadot-plans/, authored at propose with unbound params) -->
 - **Code**: <!-- design decisions / risks for this group -->
 - **Threshold**: <!-- 80; use 70 if this group contains VISUAL DIFF tasks -->
 
@@ -29,7 +31,9 @@
 - [ ] 2.2 RED — <!-- vitest case asserting wrapper.classes() includes the tokens -->
 - [ ] 2.3 GREEN — <!-- implement the view -->
 - [ ] 2.4 VISUAL DIFF — bring up dev stack (use project.dev_stack_command from openspec/config.yaml); navigate to the route; eyeball rendered UI against the mock; fix any token/color/text drift
-- [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; total ≥ threshold → PASS; < threshold → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
+<!-- Only if this group's Contract Runtime binds a signadot plan: -->
+- [ ] 2.V VALIDATE — bind params in openspec/changes/{{change}}/signadot-plans/<behavior-id>.yaml (URLs, payloads now known); run signadot-validate against the real cluster; append the structured verdict to eval-log.md; any failed assertion = Runtime floored → treat as BLOCK
+- [ ] 2.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-2.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; if a 2.V verdict exists in eval-log.md, Runtime score = that verdict (pass=100, fail=0), not subagent judgment; total ≥ threshold → PASS; < threshold → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 
 ## 3. <!-- Verification + ship -->
 
