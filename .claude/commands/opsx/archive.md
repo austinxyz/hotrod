@@ -98,6 +98,17 @@ Examples:
 - `auth-rate-limiting` → NO (internal hardening, no UX change) → skip
 - `multi-user-auth-admin-ui` → YES (new admin UI) → update README
 
+### 6b. Cleanup step 5 — register signadot plans (only if present)
+
+If `<archived-dir>/signadot-plans/` contains plan yamls, move each validated plan into the owning capability's durable library:
+
+```bash
+mkdir -p openspec/specs/<capability>/plans
+git mv openspec/changes/archive/<date>-<name>/signadot-plans/<behavior-id>.yaml openspec/specs/<capability>/plans/
+```
+
+The accumulating `selectionHint` catalog under `openspec/specs/*/plans/` is the versioned plan library — future changes touching the same behavior reuse these plans instead of authoring from scratch. If a plan's behavior failed final validation or was descoped, delete it instead of registering it; note why in the commit message.
+
 ### 7. Dev log check
 
 Check whether `docs/log/YYYY-MM-DD.md` for today's date exists (use the Glob tool or, in bash: `ls docs/log/$(date +%Y-%m-%d).md 2>/dev/null`; in PowerShell: `Get-ChildItem docs/log/$((Get-Date).ToString('yyyy-MM-dd')).md`).
@@ -111,7 +122,7 @@ If Y, draft from the proposal + commits + review findings; let the user finalize
 ### 8. Commit cleanup + final summary
 
 ```bash
-git add openspec/specs/ CLAUDE.md README.md docs/log/
+git add openspec/specs/ openspec/changes/archive/ CLAUDE.md README.md docs/log/
 git commit -m "chore: archive <name> cleanup (Purpose, README, pitfalls, dev log)"
 ```
 
