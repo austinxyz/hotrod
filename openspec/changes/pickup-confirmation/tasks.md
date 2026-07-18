@@ -6,11 +6,11 @@
 - **Code**: separate `dispatchstore.go` component with small interface (Store/Get/UpdateStatus), own Redis client via pkg/config, mirrors pkg/notifications handler pattern; record includes routingKey + sessionID (NotificationContext reconstruction); TTL 5 min SetEx constant; tests use github.com/alicebob/miniredis/v2 (new test-only dep)
 - **Threshold**: 80
 
-- [ ] 1.0 CONTRACT — write openspec/changes/pickup-confirmation/contracts/group-1.md with the ### Contract block above; confirm all three fields (Spec, Runtime, Code) are non-empty before proceeding
-- [ ] 1.1 RED — failing test: DispatchStore round-trip — Store record for requestID R then Get returns same {sessionID, driverID, eta, routingKey, status: "dispatched"}; Get unknown ID returns not-found sentinel (miniredis)
-- [ ] 1.2 GREEN — implement services/driver/dispatchstore.go: DispatchRecord struct (JSON), interface {Store, Get, UpdateStatus}, Redis client via pkg/config, 5-min SetEx TTL, otel span per op (follow pkg/notifications/handler.go pattern)
-- [ ] 1.3 RED — failing test: UpdateStatus transitions "dispatched"→"arrived" and persists; UpdateStatus on missing key returns not-found
-- [ ] 1.4 GREEN — implement UpdateStatus (GET + mutate + SET preserving TTL); pass 1.3
+- [x] 1.0 CONTRACT — write openspec/changes/pickup-confirmation/contracts/group-1.md with the ### Contract block above; confirm all three fields (Spec, Runtime, Code) are non-empty before proceeding
+- [x] 1.1 RED — failing test: DispatchStore round-trip — Store record for requestID R then Get returns same {sessionID, driverID, eta, routingKey, status: "dispatched"}; Get unknown ID returns not-found sentinel (miniredis)
+- [x] 1.2 GREEN — implement services/driver/dispatchstore.go: DispatchRecord struct (JSON), interface {Store, Get, UpdateStatus}, Redis client via pkg/config, 5-min SetEx TTL, otel span per op (follow pkg/notifications/handler.go pattern)
+- [x] 1.3 RED — failing test: UpdateStatus transitions "dispatched"→"arrived" and persists; UpdateStatus on missing key returns not-found
+- [x] 1.4 GREEN — implement UpdateStatus (GET + mutate + SET preserving TTL); pass 1.3
 - [ ] 1.E EVAL — spawn evaluator subagent (haiku); reads contracts/group-1.md + spec + design + group diff; invokes superpowers:requesting-code-review (CRITICAL/HIGH = BLOCK); scores Spec/Runtime/Code; total ≥ 80 → PASS; < 80 → append FIX tasks + retry (max 3 attempts, plateau < 5pt = escalate)
 
 ## 2. Arrival flow (consumer write + HTTP endpoint + k8s Service)
