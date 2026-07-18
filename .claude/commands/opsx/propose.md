@@ -94,6 +94,48 @@ Create `openspec/changes/<topic>/eval-log.md` with this header (substituting the
 <!-- Appended by evaluator subagent after each N.E EVAL run -->
 ```
 
+### 3b. Signadot plans for integration-critical groups (optional per group)
+
+Skip this step entirely if `integrations.signadot.enabled` is absent or false in `openspec/config.yaml`.
+
+A group is **integration-critical** when its behavior spans services and is user-visible end-to-end (the kind that passes unit tests but breaks the system). For each such group:
+
+1. Pre-create the plans directory (parallel to `contracts/`):
+
+   ```bash
+   mkdir -p openspec/changes/<topic>/signadot-plans
+   ```
+
+2. Author `openspec/changes/<topic>/signadot-plans/<behavior-id>.yaml` — a **parameterized plan with unbound params** (no concrete URLs/payloads yet; they don't exist until apply):
+
+   ```yaml
+   apiVersion: signadot.com/v1
+   kind: TestPlan
+   metadata:
+     name: <behavior-id>                # kebab-case, one user-visible behavior
+     selectionHint: "<prose: what this plan validates — lets an agent match plan to diff>"
+   spec:
+     params:                            # declared, unbound — bound at apply N.V
+       baseUrl: null
+       # ...one entry per value unknown until implementation exists
+     steps:
+       - action: <request-http | playwright | k6>
+         params:
+           url: "{{ params.baseUrl }}<endpoint>"
+         assertions:
+           - <behavior-specific assertion>
+   ```
+
+3. Rewrite that group's Contract **Runtime** field to the binding form:
+
+   ```
+   - **Runtime**: validated by signadot plan `<behavior-id>`
+   ```
+
+4. Ensure the group has an `N.V VALIDATE` task between its last GREEN (or VISUAL DIFF) and `N.E EVAL` (the template shows the form at 2.V).
+
+Groups that are NOT integration-critical keep the plain test-command Runtime and get no plan and no N.V task.
+
 ### 4. After proposal generation: branch on HAS_UI_SURFACE
 
 Read the just-written `openspec/changes/<topic>/proposal.md` frontmatter.
@@ -133,3 +175,4 @@ Output:
 - If a change with that name already exists at `openspec/changes/<topic>/`, ask the user whether to continue (delete and re-create) or pick a different name.
 - ALWAYS fill in `### Contract` blocks in tasks.md before committing. Placeholder comments in Contract blocks are plan failures — the evaluator cannot score against empty criteria.
 - `context` and `rules` from `openspec instructions` output are constraints on YOU (the agent), not content to copy into artifact files.
+- Signadot plans are propose-phase artifacts (what correct means) — author the yaml with unbound params here; NEVER fill in concrete URLs/payloads at propose. Binding happens at apply N.V.
