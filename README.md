@@ -27,6 +27,28 @@ To uninstall:
 kubectl delete ns "${NAMESPACE}"
 ```
 
+## Pickup Confirmation (fork addition)
+
+This fork adds a **pickup confirmation** flow to the driver service
+(OpenSpec change `pickup-confirmation`, capability `dispatch-tracking`):
+
+- When a ride is dispatched, the driver service persists a dispatch record in
+  Redis (`dispatch:<requestID>`, 5-minute TTL).
+- A new endpoint `POST /dispatches/{requestID}/arrived` on the driver service
+  (`:8082`, exposed via a `driver` Service) marks the driver as arrived:
+  unknown id → 404, repeat calls → idempotent 200, otherwise the record
+  transitions to `arrived` and a "Driver X arrived at pickup" notification
+  flows through the existing frontend polling — no frontend changes.
+
+```bash
+# after requesting a ride in the UI, grab the requestID from driver logs, then:
+kubectl -n "${NAMESPACE}" port-forward svc/driver 8082:8082
+curl -X POST http://localhost:8082/dispatches/<requestID>/arrived
+```
+
+The behavior is validated end-to-end by a Signadot plan
+([openspec/specs/dispatch-tracking/plans/](openspec/specs/dispatch-tracking/plans/))
+that runs a sandboxed fork of the driver against baseline frontend/redis.
 
 ## Development
 

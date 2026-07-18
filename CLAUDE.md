@@ -28,7 +28,22 @@ Integration spec: https://github.com/austinxyz/opsx-superpowers/blob/signadot/do
 
 ## Pitfalls
 
-(populated by /opsx:archive)
+- `dispatch:<requestID>` keys collide across browser sessions — the frontend's request
+  counter restarts at 1 per session, so a new session's dispatch overwrites the record.
+  Fine at demo scale; a real system (and the driver-status change) needs a globally
+  unique dispatch id.
+- Signadot plans have no sleep primitive and `request-http` exits 1 on transport
+  timeout (blackhole-URL delays fail the step). For async waits, chain request-http
+  steps via `extraInputs` refs and space them with a slow-but-answering endpoint
+  (e.g. httpbin.org/delay/4).
+- Plan execution requires Managed Plan Runners enabled per cluster in the dashboard
+  (Platform → Managed Runners); a `jobrunnergroup` does NOT satisfy "no plan runner
+  group on cluster". The org image allowlist rejected all run-container/k6 images even
+  after allowlisting (reported to Signadot) — only actionbox-backed actions
+  (request-http/eval/check) run without it.
+- Frontend toast notifications expire after 30s (Redis SetEx) — for demos, the UI's
+  Logs panel retains the full event chain; don't debug "missing" notifications
+  against the toast area.
 
 ## Kickoff (next steps)
 
