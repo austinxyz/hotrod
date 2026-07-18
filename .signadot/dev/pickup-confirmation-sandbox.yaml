@@ -1,0 +1,24 @@
+name: pickup-confirmation-dev
+spec:
+  description: fork of driver with pickup-confirmation arrival endpoint (opsx apply 2.V)
+  cluster: austin-staging-1
+  labels:
+    opsx/change: pickup-confirmation
+  forks:
+    - forkOf:
+        kind: Deployment
+        namespace: hotrod
+        name: driver
+      customizations:
+        images:
+          - container: hotrod
+            image: hotrod-pickup:dev
+        patch:
+          type: strategic
+          value: |
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: hotrod
+                      imagePullPolicy: Never

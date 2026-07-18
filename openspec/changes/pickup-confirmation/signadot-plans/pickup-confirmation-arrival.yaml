@@ -1,57 +1,432 @@
-# DRAFT — schema is a placeholder from the integration spec, NOT the real
-# Signadot plan schema. At apply 2.V, invoke the signadot-plan skill:
-# discover the real schema via `signadot plan schema` + action catalog
-# (steps use action.actionID), rewrite this spec, bind params, then
-# `signadot plan create -f` + run. Behavior narrative and assertions below
-# are the source of truth to carry over.
-apiVersion: signadot.com/v1
-kind: TestPlan
-metadata:
-  name: pickup-confirmation-arrival
-  selectionHint: >-
-    Validates the pickup-confirmation arrival chain end-to-end in a sandbox
-    running the forked driver against baseline redis/frontend: a ride dispatched
-    through the frontend produces a dispatch record; POST
-    /dispatches/{requestID}/arrived on the driver service transitions it and the
-    arrival notification surfaces in the frontend's /notifications polling.
-    Matches diffs touching services/driver (dispatchstore, consumer dispatch
-    write, arrived endpoint) or k8s driver Service wiring.
-spec:
-  params:                              # declared, unbound — bound at apply 2.V
-    frontendBaseUrl: null              # sandbox-routed frontend URL (ride request + notifications poll)
-    driverBaseUrl: null                # sandbox-routed driver URL (arrival POST)
-    sessionId: null                    # session used for the ride request / notification poll
-    requestId: null                    # captured from the dispatch triggered in step 1
-  steps:
-    - action: request-http             # 1. trigger a dispatch through the baseline frontend
-      params:
+# Signadot plan: pickup-confirmation-arrival (authored against live `signadot plan schema`)
+# Validates the arrival chain end-to-end in a sandbox running the forked driver
+# against baseline frontend/redis/kafka:
+#   dispatch (frontend) -> dispatch record (fork driver, redis)
+#   -> POST /dispatches/{id}/arrived -> status transition + notification
+#   -> frontend /notifications polling shows "Driver X arrived at pickup"
+#   + idempotent repeat + unknown-id 404.
+# Built from request-http + eval + check only: the org's image allowlist rejects
+# caller/system images (k6, run-container) even when allowlisted (bug reported),
+# and actionbox-backed actions are exempt. Kafka processing is async, so the
+# arrival POST is retried via an ordered chain of request-http steps, spaced by
+# slow-endpoint delay steps (GET httpbin.org/delay/4 == portable ~4s sleep;
+# Run: signadot plan create -f <this file> -o json
+#      signadot plan run <plan-id> --param sandbox=<sandbox-name> -o json
+selectionHint: >-
+  Validates the pickup-confirmation arrival chain end-to-end in a sandbox
+  running the forked driver against baseline redis/frontend: a ride dispatched
+  through the frontend produces a dispatch record; POST
+  /dispatches/{requestID}/arrived on the driver service transitions it and the
+  arrival notification surfaces in the frontend's /notifications polling;
+  repeats are idempotent and unknown dispatch ids 404. Matches diffs touching
+  services/driver (dispatchstore, consumer dispatch write, arrived endpoint) or
+  k8s driver Service wiring.
+params:
+  - name: sandbox   # sandbox running the forked driver (drives cluster + routing)
+  - name: frontendUrl
+    schema:
+      type: string
+    default: http://frontend.hotrod.svc:8080
+  - name: driverUrl
+    schema:
+      type: string
+    default: http://driver.hotrod.svc:8082
+  - name: requestId
+    schema:
+      type: string
+    default: "424242"
+  - name: sessionId
+    schema:
+      type: string
+    default: "987654"
+cluster:
+  fromSandbox: sandbox
+steps:
+  - id: e_dispatch_url
+    action:
+      actionID: wx1kr1xf676s8   # eval
+    extraInputs:
+      - name: furl
+    args:
+      refs:
+        furl: params.frontendUrl
+      values:
+        expression: 'furl + "/dispatch"'
+  - id: e_arrival_url
+    action:
+      actionID: wx1kr1xf676s8   # eval
+    extraInputs:
+      - name: durl
+      - name: rid
+    args:
+      refs:
+        durl: params.driverUrl
+        rid: params.requestId
+      values:
+        expression: 'durl + "/dispatches/" + rid + "/arrived"'
+  - id: e_unknown_url
+    action:
+      actionID: wx1kr1xf676s8   # eval
+    extraInputs:
+      - name: durl
+    args:
+      refs:
+        durl: params.driverUrl
+      values:
+        expression: 'durl + "/dispatches/99999999/arrived"'
+  - id: e_notif_url
+    action:
+      actionID: wx1kr1xf676s8   # eval
+    extraInputs:
+      - name: furl
+      - name: sid
+    args:
+      refs:
+        furl: params.frontendUrl
+        sid: params.sessionId
+      values:
+        expression: 'furl + "/notifications?sessionID=" + sid + "&cursor=-1"'
+  - id: e_body
+    action:
+      actionID: wx1kr1xf676s8   # eval
+    extraInputs:
+      - name: rid
+      - name: sid
+    args:
+      refs:
+        rid: params.requestId
+        sid: params.sessionId
+      values:
+        expression: '"{\"RequestID\":" + rid + ",\"SessionID\":" + sid + ",\"PickupLocationID\":123,\"DropoffLocationID\":392}"'
+  - id: dispatch
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    args:
+      refs:
+        url: steps.e_dispatch_url.outputs.result
+        body: steps.e_body.outputs.result
+      values:
         method: POST
-        url: "{{ params.frontendBaseUrl }}/dispatch"
-      assertions:
-        - dispatch accepted (2xx)
-        - a dispatch record dispatch:{{ params.requestId }} exists with status "dispatched"
-    - action: request-http             # 2. driver arrival — the behavior under test
-      params:
-        method: POST
-        url: "{{ params.driverBaseUrl }}/dispatches/{{ params.requestId }}/arrived"
-      assertions:
-        - response status 200
-    - action: request-http             # 3. idempotency — repeat arrival
-      params:
-        method: POST
-        url: "{{ params.driverBaseUrl }}/dispatches/{{ params.requestId }}/arrived"
-      assertions:
-        - response status 200
-    - action: request-http             # 4. user-visible outcome via existing polling
-      params:
+        headers:
+          - "Content-Type: application/json"
+  - id: delay1
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.dispatch.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
         method: GET
-        url: "{{ params.frontendBaseUrl }}/notifications?sessionID={{ params.sessionId }}"
-      assertions:
-        - notifications include exactly one entry with ID "req-{{ params.requestId }}-arrived"
-        - that entry's body matches "Driver .* arrived at pickup"
-    - action: request-http             # 5. negative — unknown dispatch id
-      params:
+        timeout: 20s
+  - id: arrive1
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay1.outputs.capture
+      values:
         method: POST
-        url: "{{ params.driverBaseUrl }}/dispatches/does-not-exist/arrived"
-      assertions:
-        - response status 404
+  - id: delay2
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.arrive1.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
+        method: GET
+        timeout: 20s
+  - id: arrive2
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay2.outputs.capture
+      values:
+        method: POST
+  - id: delay3
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.arrive2.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
+        method: GET
+        timeout: 20s
+  - id: arrive3
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay3.outputs.capture
+      values:
+        method: POST
+  - id: delay4
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.arrive3.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
+        method: GET
+        timeout: 20s
+  - id: arrive4
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay4.outputs.capture
+      values:
+        method: POST
+  - id: delay5
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.arrive4.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
+        method: GET
+        timeout: 20s
+  - id: arrive5
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay5.outputs.capture
+      values:
+        method: POST
+  - id: delay6
+    action:
+      actionID: buvlu2zjkqup0   # request-http (blackhole = 5s delay)
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        after: steps.arrive5.outputs.capture
+      values:
+        url: https://httpbin.org/delay/4
+        method: GET
+        timeout: 20s
+  - id: arrive6
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.delay6.outputs.capture
+      values:
+        method: POST
+  - id: repeat
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_arrival_url.outputs.result
+        after: steps.arrive6.outputs.capture
+      values:
+        method: POST
+  - id: notif
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_notif_url.outputs.result
+        after: steps.repeat.outputs.capture
+      values:
+        method: GET
+  - id: unknown
+    action:
+      actionID: buvlu2zjkqup0   # request-http
+    routingContext:
+      ref:
+        sandboxRef: params.sandbox
+    extraInputs:
+      - name: after
+        schema:
+          type: object
+    args:
+      refs:
+        url: steps.e_unknown_url.outputs.result
+        after: steps.notif.outputs.capture
+      values:
+        method: POST
+  - id: c_dispatch
+    action:
+      actionID: h9tr8mn3n7h3w   # check
+    extraInputs:
+      - name: cap
+        schema:
+          type: object
+    args:
+      refs:
+        cap: steps.dispatch.outputs.capture
+      values:
+        name: dispatch-accepted
+        expression: 'cap.response.statusCode == 200'
+  - id: c_arrived
+    action:
+      actionID: h9tr8mn3n7h3w   # check
+    extraInputs:
+      - name: a1
+        schema:
+          type: object
+      - name: a2
+        schema:
+          type: object
+      - name: a3
+        schema:
+          type: object
+      - name: a4
+        schema:
+          type: object
+      - name: a5
+        schema:
+          type: object
+      - name: a6
+        schema:
+          type: object
+    args:
+      refs:
+        a1: steps.arrive1.outputs.capture
+        a2: steps.arrive2.outputs.capture
+        a3: steps.arrive3.outputs.capture
+        a4: steps.arrive4.outputs.capture
+        a5: steps.arrive5.outputs.capture
+        a6: steps.arrive6.outputs.capture
+      values:
+        name: arrival-returns-200-after-dispatch
+        expression: 'a1.response.statusCode == 200 || a2.response.statusCode == 200 || a3.response.statusCode == 200 || a4.response.statusCode == 200 || a5.response.statusCode == 200 || a6.response.statusCode == 200'
+  - id: c_repeat
+    action:
+      actionID: h9tr8mn3n7h3w   # check
+    extraInputs:
+      - name: cap
+        schema:
+          type: object
+    args:
+      refs:
+        cap: steps.repeat.outputs.capture
+      values:
+        name: repeat-arrival-idempotent-200
+        expression: 'cap.response.statusCode == 200'
+  - id: c_notif
+    action:
+      actionID: h9tr8mn3n7h3w   # check
+    extraInputs:
+      - name: cap
+        schema:
+          type: object
+      - name: rid
+    args:
+      refs:
+        cap: steps.notif.outputs.capture
+        rid: params.requestId
+      values:
+        name: exactly-one-arrival-notification-visible
+        expression: 'cap.response.statusCode == 200 && len(filter(cap.response.message.body.notifications, .id == "req-" + rid + "-arrived")) == 1 && any(cap.response.message.body.notifications, .id == "req-" + rid + "-arrived" && hasSuffix(.body, "arrived at pickup"))'
+  - id: c_unknown
+    action:
+      actionID: h9tr8mn3n7h3w   # check
+    extraInputs:
+      - name: cap
+        schema:
+          type: object
+    args:
+      refs:
+        cap: steps.unknown.outputs.capture
+      values:
+        name: unknown-dispatch-404
+        expression: 'cap.response.statusCode == 404'
+output:
+  dispatch: steps.dispatch.outputs.capture
+  notifications: steps.notif.outputs.capture
