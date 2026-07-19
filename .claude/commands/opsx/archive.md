@@ -109,6 +109,22 @@ git mv openspec/changes/archive/<date>-<name>/signadot-plans/<behavior-id>.yaml 
 
 The accumulating `selectionHint` catalog under `openspec/specs/*/plans/` is the versioned plan library — future changes touching the same behavior reuse these plans instead of authoring from scratch. If a plan's behavior failed final validation or was descoped, delete it instead of registering it; note why in the commit message.
 
+### 6c. Cleanup step 6 — tear down validation environment (only if signadot was used)
+
+The change's ephemeral validation resources should not outlive the archive:
+
+```bash
+signadot sandbox list                       # any sandbox created for this change?
+signadot sandbox delete <sandbox-name>      # ask first if it might be shared
+```
+
+Also sweep:
+- **Draft/probe plans** created while iterating: delete unexecuted ones (`signadot plan delete <id>`); executed plans cannot be deleted (server keeps them as audit trail) — that's fine, the registered yaml in `openspec/specs/<cap>/plans/` is the durable artifact.
+- **Fork images**: remove from the local docker daemon and the cluster nodes (e.g. `kind`: `docker exec <node> ctr --namespace k8s.io images rm docker.io/library/<image>`), plus any `dist/` build output.
+- **Baseline mutations** made for smoke testing (image overrides, temporary port-forwards): restore/stop them.
+
+Keep: the Managed Plan Runner (future changes reuse it) and the registered plan library entry.
+
 ### 7. Dev log check
 
 Check whether `docs/log/YYYY-MM-DD.md` for today's date exists (use the Glob tool or, in bash: `ls docs/log/$(date +%Y-%m-%d).md 2>/dev/null`; in PowerShell: `Get-ChildItem docs/log/$((Get-Date).ToString('yyyy-MM-dd')).md`).
