@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "signadot-plan": {
+      "source": "signadot/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/signadot-plan/SKILL.md",
+      "computedHash": "1aeadae7af9c54dd46aa7551e2fe00017a3bf24f866b7b30994eee0191bdcae1"
+    },
+    "signadot-validate": {
+      "source": "signadot/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/signadot-validate/SKILL.md",
+      "computedHash": "adb57426f69f99caf603f8d5ecb66c7ff13441b69a72c2c724d4361bdcc981e4"
+    }
+  }
+}
